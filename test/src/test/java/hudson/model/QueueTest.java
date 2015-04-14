@@ -48,6 +48,7 @@ import hudson.security.SparseACL;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.DummyCloudImpl;
 import hudson.slaves.NodeProvisionerRule;
+import hudson.tasks.BuildTrigger;
 import hudson.tasks.Shell;
 import hudson.triggers.SCMTrigger.SCMTriggerCause;
 import hudson.triggers.TimerTrigger.TimerTriggerCause;
@@ -86,6 +87,7 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockQueueItemAuthenticator;
 import org.jvnet.hudson.test.SequenceLock;
+import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.TestBuilder;
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.bio.SocketConnector;
@@ -609,5 +611,39 @@ public class QueueTest {
             fail("Should not get (as it is cancelled).");
         } catch (CancellationException e) {
         }
+    }
+    
+    @Issue("JENKINS-27871")
+    @Test public void testBlockBuildWhenUpstreamBuildingLock() throws Exception {
+        final String prefix = "JENKINS-27871";
+        r.getInstance().setNumExecutors(4);
+        r.getInstance().save();
+        
+        final FreeStyleProject projectA = r.createFreeStyleProject(prefix+"A");
+        projectA.getBuildersList().add(new SleepBuilder(5000));
+        
+        final FreeStyleProject projectB = r.createFreeStyleProject(prefix+"B");
+        projectB.getBuildersList().add(new SleepBuilder(10000));     
+        projectB.setBlockBuildWhenUpstreamBuilding(true);
+        
+        final FreeStyleProject projectC = r.createFreeStyleProject(prefix+"C");
+        projectC.getBuildersList().add(new SleepBuilder(10000));
+        projectC.setBlockBuildWhenUpstreamBuilding(true);
+        
+        projectA.getPublishersList().add(new BuildTrigger(Arrays.asList(projectB), Result.SUCCESS));
+        projectB.getPublishersList().add(new BuildTrigger(Arrays.asList(projectC), Result.SUCCESS));
+        
+        final QueueTaskFuture<FreeStyleBuild> taskA = projectA.scheduleBuild2(0, new TimerTriggerCause());
+        Thread.sleep(1000);
+        final QueueTaskFuture<FreeStyleBuild> taskB = projectB.scheduleBuild2(0, new TimerTriggerCause());
+        final QueueTaskFuture<FreeStyleBuild> taskC = projectC.scheduleBuild2(0, new TimerTriggerCause());
+        
+        final FreeStyleBuild buildA = taskA.get(60, TimeUnit.SECONDS);       
+        final FreeStyleBuild buildB = taskB.get(60, TimeUnit.SECONDS);     
+        final FreeStyleBuild buildC = taskC.get(60, TimeUnit.SECONDS);
+        long buildBEndTime = buildB.getStartTimeInMillis() + buildB.getDuration();
+        assertTrue("Project B build should be finished before the build of project C starts. " +
+                "B finished at " + buildBEndTime + ", C started at " + buildC.getStartTimeInMillis(), 
+                buildC.getStartTimeInMillis() >= buildBEndTime);
     }
 }
