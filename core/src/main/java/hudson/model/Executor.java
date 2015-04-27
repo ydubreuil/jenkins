@@ -549,7 +549,7 @@ public class Executor extends Thread implements ModelObject {
         } finally {
             lock.readLock().unlock();
         }
-        if (d < 0) {
+        if (d <= 0) {
             return -1;
         }
 
