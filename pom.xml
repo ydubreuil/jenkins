@@ -33,7 +33,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>pom</artifactId>
-  <version>1.596.2-threadsafe-1-SNAPSHOT</version>
+  <version>1.596.2-threadsafe-2-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Jenkins main module</name>
@@ -174,7 +174,7 @@ THE SOFTWARE.
       <dependency>
         <groupId>org.jenkins-ci.main</groupId>
         <artifactId>remoting</artifactId>
-        <version>2.49</version>
+        <version>2.52-SNAPSHOT</version>
       </dependency>
 
       <dependency>
