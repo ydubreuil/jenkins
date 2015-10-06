@@ -33,7 +33,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>pom</artifactId>
-  <version>1.596.2-threadsafe-2-SNAPSHOT</version>
+  <version>1.596.2-threadsafe-3-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Jenkins main module</name>
