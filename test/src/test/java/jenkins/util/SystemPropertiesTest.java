@@ -25,9 +25,14 @@ package jenkins.util;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
-import net.sourceforge.htmlunit.corejs.javascript.RhinoSecurityManager;
+
+import hudson.slaves.DumbSlave;
+import jenkins.security.MasterToSlaveCallable;
+
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
+
+import org.jenkinsci.remoting.RoleChecker;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,5 +71,24 @@ public class SystemPropertiesTest {
         System.setProperty("install-wizard-path", "myVal2");
         assertThat("System property should take system property with a high priority", 
                 SystemProperties.getString("install-wizard-path"), equalTo("myVal2"));
+    }
+
+    @Test
+    public void shouldFailToLoadOnRemoteAgent() throws Exception {
+        DumbSlave slave = j.createOnlineSlave();
+        String reply = slave.getChannel().call(new LoadSystemPropertiesCallable());
+
+        assertThat(reply, not(equalTo("defaultValueForFooBar")));
+    }
+
+    private static final class LoadSystemPropertiesCallable extends MasterToSlaveCallable<String, Exception> {
+        @Override
+        public String call() throws Exception {
+            return SystemProperties.getString("foo.bar", "defaultValueForFooBar");
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+        }
     }
 }
